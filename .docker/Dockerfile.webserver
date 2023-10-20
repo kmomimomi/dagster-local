@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+ENV DAGSTER_HOME=/opt/dagster/dagster_home/
+RUN mkdir -p $DAGSTER_HOME
+WORKDIR /opt/dagster/app
+
+RUN pip install dagster-webserver dagster-postgres dagster-docker
+
+COPY ./.docker/dagster.yaml /opt/dagster/dagster_home/dagster.yaml 
+COPY ./.docker/workspace.yaml ./workspace.yaml
+
+EXPOSE 3000
+
+CMD ["dagster-webserver", "-w", "./workspace.yaml", "-h", "0.0.0.0", "-p", "3000"]

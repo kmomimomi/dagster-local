@@ -1,0 +1,40 @@
+# storage
+# ジョブとアセットの履歴、イベントログ、スケジュールなどのメタデータDBに関する設定
+# 本設定のために、dagster-postgresが必要
+storage:
+  postgres:
+    postgres_db:
+      hostname: postgresql
+      username:
+        env: DAGSTER_POSTGRES_USER
+      password:
+        env: DAGSTER_POSTGRES_PASSWORD
+      db_name:
+        env: DAGSTER_POSTGRES_DB
+      port: 5432
+
+# 実行ランチャー
+# ワーカーの場所を決定する（Local、Docker、K8s）。デフォルトはローカル
+# 今回はDocker環境なので、Dockerランチャーを利用している。
+# ワーカー用にDockerコンテナを新たに起動してくれる。 
+run_launcher:
+  module: dagster_docker
+  class: DockerRunLauncher
+  config:
+    env_vars:
+      - DAGSTER_POSTGRES_USER
+      - DAGSTER_POSTGRES_PASSWORD
+      - DAGSTER_POSTGRES_DB
+      - DAGSTER_DBT_PARSE_PROJECT_ON_LOAD
+    network: dagster-local_default
+    container_kwargs:
+      volumes:
+        - /Users/tomomi.kodama/Documents/workspace/dagster-local/jaffle_shop:/opt/dagster/app
+
+# 実行コーディネイター
+# スケジュールされた実行単位を、どんな順番で、どれだけ実行環境構成に送るか？
+# キューを使う。キューが流量制限をするので、並列実行数に上限が生まれる。
+run_coordinator:
+  module: dagster.core.run_coordinator
+  class: QueuedRunCoordinator
+

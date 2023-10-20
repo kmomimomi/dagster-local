@@ -1,0 +1,81 @@
+version: "3.7"
+
+services:
+
+  postgresql:
+    image: postgres
+    container_name: postgresql
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "postgres"
+    ports:
+      - 5432:5432
+
+  code_location:
+    build:
+      context: .
+      dockerfile: ./.docker/Dockerfile.code_location
+    container_name: code_location
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "postgres"
+      DAGSTER_DBT_PARSE_PROJECT_ON_LOAD: 0
+      DAGSTER_CURRENT_IMAGE: "dagster-local-code_location:latest"
+    volumes:
+      - ./jaffle_shop:/opt/dagster/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "dagster"
+      - "api"
+      - "grpc"
+      - "-h"
+      - "0.0.0.0"
+      - "-p"
+      - "4000"
+      - "-m"
+      - "jaffle_dagster.definitions"
+      - "--working-directory"
+      - "./jaffle_dagster"
+
+  webserver:
+    build:
+      context: .
+      dockerfile: ./.docker/Dockerfile.webserver
+    entrypoint:
+      - dagster-webserver
+      - -h
+      - "0.0.0.0"
+      - -p
+      - "3000"
+      - -w
+      - workspace.yaml
+    container_name: webserver
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "postgres"
+      DAGSTER_DBT_PARSE_PROJECT_ON_LOAD: 1
+      DAGSTER_CURRENT_IMAGE: "dagster-local-code_location:latest"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  daemon:
+    build:
+      context: .
+      dockerfile: ./.docker/Dockerfile.daemon
+    entrypoint:
+      - dagster-daemon
+      - run
+    container_name: daemon
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres"
+      DAGSTER_POSTGRES_PASSWORD: "postgres"
+      DAGSTER_POSTGRES_DB: "postgres"
+      DAGSTER_DBT_PARSE_PROJECT_ON_LOAD: 1
+      DAGSTER_CURRENT_IMAGE: "dagster-local-code_location:latest"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

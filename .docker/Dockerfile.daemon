@@ -1,0 +1,18 @@
+FROM python:3.10-slim
+
+ENV DAGSTER_HOME=/opt/dagster/dagster_home
+RUN mkdir -p $DAGSTER_HOME
+WORKDIR $DAGSTER_HOME
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git \
+ && apt-get purge -y --auto-remove \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY ./.docker/requirements.txt requirements.txt
+RUN pip install -r ./requirements.txt
+
+COPY ./.docker/dagster.yaml ./dagster.yaml 
+COPY ./.docker/workspace.yaml ./workspace.yaml
+
+CMD ["dagster-daemon", "run"]
